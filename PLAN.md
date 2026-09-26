@@ -123,3 +123,5 @@ nothing destructive to undo.
    from S3 hold and AEC keeps targeting the right devices — this is the specific failure
    mode raw online configs don't survive, and the one this project is actually for.
 S0: done - bleed reproduced, 11dB rise measured (see evidence/)
+S1: verified live (see README for the two bugs found: pactl quoting + wrong source_master)
+S4 (verify-aec.sh) built early: PASS at 28.9dB delta on real setup, FAIL at -1.0dB on raw-vs-raw sanity check

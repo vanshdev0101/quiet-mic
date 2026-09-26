@@ -1,4 +1,4 @@
-# pw-aec
+# quiet-mic
 
 A working, reusable acoustic echo cancellation (AEC) setup for PipeWire — stops
 desktop/speaker output from bleeding into a microphone during recording.
@@ -51,7 +51,37 @@ drop-ins:
 
 ## Status
 
-S0 (baseline) complete — bleed reproduced and measured. See `PLAN.md` for the full
-staged build (S1: live spike, S2: persist config, S3: stable node names, S4: verify
-script, S5: unrelated default-source fix, S6: package). No `module-echo-cancel` config
-has been loaded or written yet.
+S0 (baseline) and S1 (live spike, verified) complete; verification script (S4) built
+early since manual by-ear testing doesn't scale. Still session-scoped — nothing
+persisted to `~/.config/pipewire/` yet (that's S2). See `PLAN.md` for the full staged
+build.
+
+### S1 notes — two real bugs found and fixed along the way
+
+The first live-loaded module used `pactl load-module module-echo-cancel` with
+`source_properties`/`sink_properties` values containing embedded single quotes
+(`device.description='...'`). That corrupted pactl's own argument tokenization for
+every property *after* the broken one — `sink_name` silently fell back to a default,
+and worse, **`source_master` silently fell back to whatever the default source was at
+load time**, which was the Bluetooth headset mic (`bluez_input`), not the real USB
+condenser mic. Confirmed via `pw-link -l`: `echo-cancel-capture` was wired to
+`bluez_input`, not `alsa_input.usb-DCMT_...`.
+
+This meant the very first "it works" measurement (aec_source RMS -71dB) wasn't
+measuring anything real — it was reading an mostly-silent Bluetooth earpiece mic, not
+an echo-cancelled signal from the actual recording mic. It also meant a live listening
+test (via OBS, which was separately still wired directly to the raw USB mic and never
+touched `aec_source` at all) correctly showed almost no improvement — because the
+module was never actually listening to the right microphone.
+
+Fixed by dropping the property strings entirely (cosmetic only) and reloading with
+plain `key=value` args. Confirmed via `pw-link -l` that `echo-cancel-capture` now
+pulls from the real USB mic and `echo-cancel-playback`/its rename forwards to the real
+Bluetooth sink. Re-measured with `scripts/verify-aec.sh`: **28.9dB reduction** (raw mic
+-25.9dB vs. aec_source -54.8dB during identical tone playback), and the script
+correctly **fails** (-1.0dB delta) when pointed at the raw mic on both sides — proof
+it discriminates rather than always passing.
+
+Lesson for S2/S3: never pass free-form quoted strings as `pactl load-module` argument
+values — use plain `key=value` args, and put anything needing quoting/nesting into the
+native `pipewire.conf.d` JSON form instead (S2), where it's parsed properly.
