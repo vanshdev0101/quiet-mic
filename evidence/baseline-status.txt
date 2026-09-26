@@ -1,0 +1,92 @@
+PipeWire 'pipewire-0' [1.6.8, vanshc@vr7404, cookie:1850999786]
+ └─ Clients:
+        32. xdg-desktop-portal                  [1.6.8, vanshc@vr7404, pid:1885]
+        38. xdg-desktop-portal-hyprland         [1.6.8, vanshc@vr7404, pid:2040]
+        57.                                     [1.6.8, vanshc@vr7404, pid:98839]
+        66. WirePlumber [client]                [1.6.8, vanshc@vr7404, pid:10931]
+        87. WEBRTC VoiceEngine                  [1.6.8, vanshc@vr7404, pid:168174]
+        98. WirePlumber                         [1.6.8, vanshc@vr7404, pid:10931]
+       100. pipewire                            [1.6.8, vanshc@vr7404, pid:3657]
+       101. Brave input                         [1.6.8, vanshc@vr7404, pid:3648]
+       102. wpctl                               [1.6.8, vanshc@vr7404, pid:226259]
+       111. quickshell                          [1.6.8, vanshc@vr7404, pid:1836]
+       114. Chromium input                      [1.6.8, vanshc@vr7404, pid:62447]
+       120. SwayOSD                             [1.6.8, vanshc@vr7404, pid:1838]
+       131. WirePlumber [client]                [1.6.8, vanshc@vr7404, pid:10931]
+       134. libcanberra                         [1.6.8, vanshc@vr7404, pid:98839]
+       135.                                     [1.6.8, vanshc@vr7404, pid:98839]
+       207. WEBRTC VoiceEngine                  [1.6.8, vanshc@vr7404, pid:168174]
+       208. Chromium input                      [1.6.8, vanshc@vr7404, pid:168263]
+
+Audio
+ ├─ Devices:
+ │      56. Gaming Webcam [Kiyo]                [alsa]
+ │      64. Radeon High Definition Audio Controller [alsa]
+ │      88. Ryzen HD Audio Controller           [alsa]
+ │      89. GA104 High Definition Audio Controller [alsa]
+ │     142. VIS-S226                            [bluez5]
+ │     145. USB Condenser Microphone            [alsa]
+ │  
+ ├─ Sinks:
+ │      37. GA104 High Definition Audio Controller Pro 7 [vol: 1.00]
+ │  *   60. VIS-S226                            [vol: 0.80]
+ │      63. Radeon High Definition Audio Controller Pro [vol: 1.00]
+ │      73. GA104 High Definition Audio Controller Pro 8 [vol: 1.00]
+ │     122. GA104 High Definition Audio Controller Pro 9 [vol: 1.00]
+ │     137. GA104 High Definition Audio Controller Pro [vol: 1.00]
+ │     188. Ryzen HD Audio Controller Headphones [vol: 1.00]
+ │  
+ ├─ Sources:
+ │      58. Gaming Webcam [Kiyo] Analog Stereo  [vol: 0.59]
+ │     146. USB Condenser Microphone Mono       [vol: 1.00]
+ │     193. Ryzen HD Audio Controller Digital Microphone [vol: 1.00]
+ │     194. Ryzen HD Audio Controller Stereo Microphone [vol: 0.13]
+ │  
+ ├─ Filters:
+ │    - loopback-10931-20                                           
+ │      62. bluez_capture_internal.51:65:E6:58:40:2C                     [Stream/Input/Audio/Internal]
+ │  *  113. bluez_input.51:65:E6:58:40:2C                                [Audio/Source]
+ │  
+ └─ Streams:
+
+Video
+ ├─ Devices:
+ │      41. Razer Kiyo                          [v4l2]
+ │      71. Razer Kiyo                          [v4l2]
+ │      78. HP Wide Vision HD Camera            [v4l2]
+ │      79. HP Wide Vision HD Camera            [v4l2]
+ │     104. OBS Virtual Camera                  [v4l2]
+ │  
+ ├─ Sinks:
+ │  
+ ├─ Sources:
+ │  *   53. HP Wide Vision HD Camera (V4L2)    
+ │      70. Razer Kiyo (V4L2)                  
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Settings
+ └─ Default Configured Devices:
+         0. Audio/Sink    bluez_output.51_65_E6_58_40_2C.1
+         1. Audio/Source  bluez_input.51:65:E6:58:40:2C
+1106	alsa_output.pci-0000_01_00.1.pro-output-3	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+1107	alsa_output.pci-0000_01_00.1.pro-output-7	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1108	alsa_output.pci-0000_01_00.1.pro-output-8	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1109	alsa_output.pci-0000_01_00.1.pro-output-9	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1243	alsa_output.pci-0000_06_00.1.pro-output-3	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1272	alsa_output.pci-0000_06_00.6.HiFi__Headphones__sink	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+1491	bluez_output.51_65_E6_58_40_2C.1	PipeWire	s16le 2ch 48000Hz	RUNNING
+778	alsa_input.usb-Alpha_Imaging_Tech._Corp._Razer_Kiyo-02.analog-stereo.2	PipeWire	s16le 2ch 48000Hz	SUSPENDED
+832	alsa_input.usb-DCMT_Technology_USB_Condenser_Microphone_214b206000000178-00.mono-fallback	PipeWire	s24le 1ch 48000Hz	SUSPENDED
+1106	alsa_output.pci-0000_01_00.1.pro-output-3.monitor	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+1107	alsa_output.pci-0000_01_00.1.pro-output-7.monitor	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1108	alsa_output.pci-0000_01_00.1.pro-output-8.monitor	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1109	alsa_output.pci-0000_01_00.1.pro-output-9.monitor	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1243	alsa_output.pci-0000_06_00.1.pro-output-3.monitor	PipeWire	s32le 8ch 48000Hz	SUSPENDED
+1272	alsa_output.pci-0000_06_00.6.HiFi__Headphones__sink.monitor	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+1273	alsa_input.pci-0000_06_00.6.HiFi__Mic2__source	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+1274	alsa_input.pci-0000_06_00.6.HiFi__Mic1__source	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+1489	bluez_input.51:65:E6:58:40:2C	PipeWire	float32le 1ch 48000Hz	SUSPENDED
+1491	bluez_output.51_65_E6_58_40_2C.1.monitor	PipeWire	s16le 2ch 48000Hz	RUNNING
