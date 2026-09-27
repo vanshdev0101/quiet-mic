@@ -125,3 +125,7 @@ nothing destructive to undo.
 S0: done - bleed reproduced, 11dB rise measured (see evidence/)
 S1: verified live (see README for the two bugs found: pactl quoting + wrong source_master)
 S4 (verify-aec.sh) built early: PASS at 28.9dB delta on real setup, FAIL at -1.0dB on raw-vs-raw sanity check
+S2: done via pipewire-pulse.conf.d/pulse.cmd (not native pipewire.conf.d as originally
+planned -- persists the exact form S1 validated). Survives full pipewire+pipewire-pulse+
+wireplumber restart with zero manual commands; verify-aec.sh re-passed at 26.2dB. Next: S3
+(stable node names via WirePlumber rules).

@@ -40,21 +40,52 @@ and severe enough to matter — not a marginal effect.
 Config-only: no custom DSP, no daemon. Three pieces, all additive PipeWire/WirePlumber
 drop-ins:
 
-1. `pipewire.conf.d/10-echo-cancel.conf` — loads `module-echo-cancel` against fixed
-   node targets.
+1. `pipewire-pulse.conf.d/10-echo-cancel.conf` — loads the pulse-compat
+   `module-echo-cancel` on every `pipewire-pulse` startup via plain `key=value` args
+   against fixed node targets. (Not the native `libpipewire-module-echo-cancel` JSON
+   form originally planned — see S2 notes below for why.)
 2. `wireplumber.conf.d/51-alsa-usb-mic.conf`, `51-bluez-desktop.conf` — pin stable
    `node.name`s to the USB mic and Bluetooth sink by hardware identity (USB serial,
    Bluetooth MAC), so the AEC config's targets don't rot after a reboot or reconnect.
+   (Not yet built — that's S3.)
 3. `scripts/verify-aec.sh` — plays a known tone and asserts the AEC source is
    measurably quieter than the raw mic during playback; fails on the raw/unpatched
    setup, passes on the fixed one.
 
 ## Status
 
-S0 (baseline) and S1 (live spike, verified) complete; verification script (S4) built
-early since manual by-ear testing doesn't scale. Still session-scoped — nothing
-persisted to `~/.config/pipewire/` yet (that's S2). See `PLAN.md` for the full staged
-build.
+S0, S1, and S2 complete; verification script (S4) built early since manual by-ear
+testing doesn't scale. See `PLAN.md` for the full staged build.
+
+### S2 notes — persisted config, one deviation from the original plan
+
+The plan originally called for the native `libpipewire-module-echo-cancel` via
+`~/.config/pipewire/pipewire.conf.d/`. Instead, S2 persists the **pulse-compat**
+module (`module-echo-cancel` via `pipewire-pulse`'s `pulse.cmd` mechanism, plain
+`key=value` args) — because that's the exact form S1 already validated working, and
+switching to an untested config format at persistence time would have reintroduced
+the same class of risk S1 just spent time debugging. `pipewire-pulse.conf.d` supports
+the same `pulse.cmd = [ { cmd = "load-module" args = "..." } ]` syntax as
+PulseAudio's old `default.pa`, documented in `/usr/share/pipewire/pipewire-pulse.conf`.
+
+Install: copy `pipewire-pulse.conf.d/10-echo-cancel.conf` into
+`~/.config/pipewire/pipewire-pulse.conf.d/`, then
+`systemctl --user restart pipewire pipewire-pulse wireplumber`.
+
+Verified: a full restart of all three services (closest local approximation to a real
+logout/login) brought back `aec_sink`/`aec_source` and the default-sink selection with
+zero manual commands. `scripts/verify-aec.sh` re-run afterward: **26.2dB reduction**,
+consistent with S1's 28.9dB.
+
+One transient found and noted, not chased further: restarting `pipewire-pulse` alone
+(without also restarting `pipewire`/`wireplumber`) caused the default sink to
+temporarily revert to the wired headphones before being reset manually — a full
+three-service restart didn't have this issue. Not investigated further since it
+doesn't affect the real reboot/login path this project targets.
+
+Still open: node names are still hardcoded to today's real hardware identifiers (S3
+not done), and OBS/any app must still explicitly select `aec_sink`/`aec_source` — this
+config doesn't retroactively fix an app already pointed at the raw devices.
 
 ### S1 notes — two real bugs found and fixed along the way
 
