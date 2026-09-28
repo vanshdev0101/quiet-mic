@@ -45,17 +45,56 @@ drop-ins:
    against fixed node targets. (Not the native `libpipewire-module-echo-cancel` JSON
    form originally planned — see S2 notes below for why.)
 2. `wireplumber.conf.d/51-alsa-usb-mic.conf`, `51-bluez-desktop.conf` — pin stable
-   `node.name`s to the USB mic and Bluetooth sink by hardware identity (USB serial,
-   Bluetooth MAC), so the AEC config's targets don't rot after a reboot or reconnect.
-   (Not yet built — that's S3.)
+   `node.name`s (`usb_condenser_mic`, `bt_desktop_speaker`) to the USB mic and
+   Bluetooth sink by hardware identity (USB serial, Bluetooth MAC), so the AEC
+   config's targets don't rot after a reboot or reconnect.
 3. `scripts/verify-aec.sh` — plays a known tone and asserts the AEC source is
    measurably quieter than the raw mic during playback; fails on the raw/unpatched
    setup, passes on the fixed one.
 
 ## Status
 
-S0, S1, and S2 complete; verification script (S4) built early since manual by-ear
-testing doesn't scale. See `PLAN.md` for the full staged build.
+S0-S3 complete; verification script (S4) built early since manual by-ear testing
+doesn't scale. S5 (default-source fix) also pulled forward — see S3 notes for why.
+See `PLAN.md` for the full staged build.
+
+### S3 notes — a real regression found live, and S5 pulled forward because of it
+
+Renaming worked exactly as designed (`monitor.alsa.rules`/`monitor.bluez.rules` with a
+`node.name` regex match + `update-props`, confirmed against a system test before
+committing — the officially documented example config only lists `node.nick`/
+`node.description` as renamable, not `node.name` itself, so this was verified
+empirically rather than assumed). But testing it live surfaced a real, disruptive
+side effect: restarting WirePlumber to apply a rename briefly invalidated the
+already-loaded echo-cancel module's `source_master` reference (which was still
+pointing at the pre-rename name), so it silently fell back to the **Bluetooth mic**
+instead of the USB mic — and because the Bluetooth mic role requires bidirectional
+audio, this forced the speaker from A2DP (stereo, 48kHz) down to HSP/HFP
+(mono, 16kHz), audibly degrading quality. It happened twice, on two separate restarts.
+
+Root cause traced further: this always happens on any full service restart because
+the machine's **default source has been the Bluetooth mic since before this project
+started** (visible all the way back in the S0 baseline dump). Every restart re-opens
+whatever the default source is, and if that's the Bluetooth mic, BlueZ negotiates
+HSP/HFP regardless of what any app actually wants. This was originally scoped as S5,
+a separate unrelated cleanup item — it isn't separate. It's a live cause of S3's
+unreliability, so it was fixed now: `wpctl set-default` to `usb_condenser_mic`, plus
+a Bluetooth disconnect/reconnect cycle to force A2DP renegotiation back.
+
+After both fixes, a full `pipewire`+`pipewire-pulse`+`wireplumber` restart resolves
+`usb_condenser_mic` → `echo-cancel-capture` and `echo-cancel-playback` →
+`bt_desktop_speaker` correctly, A2DP stays stereo, and `scripts/verify-aec.sh` passes
+at 17.0dB. (Numbers have varied run to run through this session — 28.9dB, 26.2dB,
+14.6dB, 17.0dB — likely the AEC filter's adaptive convergence state after repeated
+reloads, or minor acoustic/volume differences between runs; all comfortably clear the
+10dB pass threshold, but this variability is noted honestly rather than picking the
+best number to report.)
+
+Install: copy `wireplumber.conf.d/*.conf` into `~/.config/wireplumber/wireplumber.conf.d/`,
+update `pipewire-pulse.conf.d/10-echo-cancel.conf`'s `source_master`/`sink_master` to
+the stable names (already done in this repo's copy), then restart all three services.
+If your default source is currently a Bluetooth mic, fix that too (`wpctl set-default`)
+or you'll hit the same regression documented above.
 
 ### S2 notes — persisted config, one deviation from the original plan
 

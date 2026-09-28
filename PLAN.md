@@ -129,3 +129,11 @@ S2: done via pipewire-pulse.conf.d/pulse.cmd (not native pipewire.conf.d as orig
 planned -- persists the exact form S1 validated). Survives full pipewire+pipewire-pulse+
 wireplumber restart with zero manual commands; verify-aec.sh re-passed at 26.2dB. Next: S3
 (stable node names via WirePlumber rules).
+S3: done. Stable node.name rules confirmed working empirically (docs only listed nick/
+description as renamable). Found a real regression during testing: renaming while the
+module was already loaded broke source_master, causing a fallback to the Bluetooth mic
+and a forced HSP/HFP downgrade (mono/16kHz instead of A2DP stereo) -- twice. Traced to
+S5 (default source was the Bluetooth mic since before this project started) actively
+causing it, so S5 was pulled forward and fixed now rather than deferred. Config repointed
+at stable names (usb_condenser_mic, bt_desktop_speaker); verify-aec.sh passes at 17.0dB
+after a full three-service restart with A2DP intact. Next: S6 (packaging/install script).
