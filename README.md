@@ -19,21 +19,43 @@ Configs found in forum posts hardcode today's PipeWire node names
 are **not stable** across reboots or Bluetooth reconnects, so a config that works today
 silently breaks later. That instability, not the DSP, is the real unsolved gap.
 
+## Install
+
+```
+git clone https://github.com/vanshdev0101/quiet-mic
+cd quiet-mic
+./scripts/install.sh
+```
+
+This targets **this specific machine** (this USB mic's serial, this Bluetooth MAC) —
+edit `pipewire-pulse.conf.d/10-echo-cancel.conf` and the two `wireplumber.conf.d/*.conf`
+files first if installing elsewhere (swap in your own device identifiers; find them via
+`pw-dump | grep device.name`). The script only symlinks three config files and restarts
+the three affected services — nothing else, no package manager, no daemon.
+
+After install, follow the printed next steps: set `aec_sink` as your default output, make
+sure your default *source* isn't a Bluetooth mic (see Known limitations below), and point
+your recording app at `aec_source`. Then run `./scripts/verify-aec.sh` to confirm.
+
 ## Evidence
 
 `evidence/baseline-status.txt` — full `wpctl status` / `pactl` dump of the real audio
 graph on the target machine before any fix.
 
-`evidence/before.wav` — a 440Hz test tone (`evidence/tone.wav`) played through the
-Bluetooth sink while recording from the raw USB mic. Measured via `ffmpeg -af astats`:
+`evidence/before.wav` / `evidence/after.wav` — the same 440Hz test tone
+(`evidence/tone.wav`) played through the desktop sink while recording from the raw mic
+(`before.wav`) vs. the AEC source (`after.wav`). Measured via `ffmpeg -af astats`:
 
 | | RMS level |
 |---|---|
 | Silence (mic only, nothing playing) | -24.5 dB |
-| During playback (raw mic, no AEC) | -13.8 dB, peak -0.65 dB (near clipping) |
+| During playback, raw mic, no AEC (`before.wav`) | -13.8 dB, peak -0.65 dB (near clipping) |
+| During playback, AEC source (`after.wav`) | -56.1 dB |
 
-An ~11 dB rise during playback, on a mic with a hot preamp, confirms the bleed is real
-and severe enough to matter — not a marginal effect.
+The raw-mic number confirms the bleed is real and severe (near clipping, not a marginal
+effect); the AEC number is a ~42dB drop from it. `verify-aec.sh` re-measures this live
+every run rather than trusting these two fixed recordings — see Known limitations for
+why the exact number varies run to run.
 
 ## What it is
 
@@ -54,9 +76,31 @@ drop-ins:
 
 ## Status
 
-S0-S3 complete; verification script (S4) built early since manual by-ear testing
-doesn't scale. S5 (default-source fix) also pulled forward — see S3 notes for why.
-See `PLAN.md` for the full staged build.
+Done: S0-S6 all complete. `scripts/install.sh` tested end to end on the target machine
+(fresh symlink + service restart + reconnect + verify all passing). See `PLAN.md` for
+the full staged build history.
+
+## Known limitations
+
+- **Restarting `pipewire`/`pipewire-pulse`/`wireplumber` disconnects the Bluetooth
+  speaker entirely**, every time, on this machine — confirmed repeatedly during
+  development. This isn't something this config can fix (it's below PipeWire, in
+  BlueZ/the kernel Bluetooth stack); `install.sh` restarts these services, so if you're
+  on Bluetooth, expect to run `bluetoothctl connect <MAC>` once afterward.
+- **Leaving a Bluetooth mic as your default audio *source*** forces BlueZ to negotiate
+  bidirectional HSP/HFP instead of output-only A2DP, silently downgrading your speaker
+  from stereo/48kHz to mono/16kHz. `install.sh` tells you to check this; it doesn't fix
+  it automatically since "your default source" is a judgment call the script shouldn't
+  make for you on a machine it doesn't know.
+- **The measured dB reduction varies run to run** (28.9 / 26.2 / 14.6 / 17.0 / 35.9 dB
+  across this project's own testing) — likely the AEC filter's adaptive convergence
+  state after a reload, or minor volume/acoustic differences between runs. All
+  comfortably clear `verify-aec.sh`'s 10dB pass threshold, but don't treat any single
+  number as precise; treat the script's pass/fail as the signal.
+- **Apps must be manually pointed at the new devices.** This config creates
+  `aec_sink`/`aec_source` alongside your existing devices — it doesn't retroactively
+  reconfigure an app (OBS, Discord, etc.) that's already set to the raw mic or a
+  specific output. You do that once, per app.
 
 ### S3 notes — a real regression found live, and S5 pulled forward because of it
 

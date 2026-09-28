@@ -137,3 +137,12 @@ S5 (default source was the Bluetooth mic since before this project started) acti
 causing it, so S5 was pulled forward and fixed now rather than deferred. Config repointed
 at stable names (usb_condenser_mic, bt_desktop_speaker); verify-aec.sh passes at 17.0dB
 after a full three-service restart with A2DP intact. Next: S6 (packaging/install script).
+S6: done. scripts/install.sh symlinks the 3 config files + restarts services, nothing
+more (rung 6/7 call: plain symlinks, no install framework). Tested end to end on the
+target machine: fresh install + service restart disconnected Bluetooth (again -- a
+machine-level quirk, documented as a Known Limitation, not a script bug), reconnect
+restored A2DP, verify-aec.sh passed at 35.9dB. Captured evidence/after.wav to pair with
+S0's before.wav. README reorganized with a top-level Install section and a Known
+Limitations section (Bluetooth-disconnect-on-restart, default-source/HSP trap, dB
+variance run to run, apps need manual reconfiguration) rather than leaving these buried
+in per-stage notes. Project complete -- all S0-S6 stages done.
