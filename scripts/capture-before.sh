@@ -2,8 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-MIC=alsa_input.usb-DCMT_Technology_USB_Condenser_Microphone_214b206000000178-00.mono-fallback
-SINK=bluez_output.51_65_E6_58_40_2C.1
+# Raw devices, deliberately bypassing AEC. Names are the stable ones from
+# wireplumber.conf.d/ (S0 originally ran against the pre-rename raw node names).
+MIC="${MIC:-usb_condenser_mic}"
+SINK="${SINK:-bt_desktop_speaker}"
 
 timeout 6 parecord --device="$MIC" --file-format=wav --rate=48000 --channels=1 evidence/before.wav &
 REC_PID=$!

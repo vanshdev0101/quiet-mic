@@ -37,6 +37,10 @@ After install, follow the printed next steps: set `aec_sink` as your default out
 sure your default *source* isn't a Bluetooth mic (see Known limitations below), and point
 your recording app at `aec_source`. Then run `./scripts/verify-aec.sh` to confirm.
 
+To uninstall: remove the three symlinks (`~/.config/pipewire/pipewire-pulse.conf.d/10-echo-cancel.conf`,
+`~/.config/wireplumber/wireplumber.conf.d/51-alsa-usb-mic.conf`, `51-bluez-desktop.conf`) and restart
+`pipewire pipewire-pulse wireplumber`. Nothing else is touched.
+
 ## Evidence
 
 `evidence/baseline-status.txt` — full `wpctl status` / `pactl` dump of the real audio
@@ -70,8 +74,10 @@ drop-ins:
    `node.name`s (`usb_condenser_mic`, `bt_desktop_speaker`) to the USB mic and
    Bluetooth sink by hardware identity (USB serial, Bluetooth MAC), so the AEC
    config's targets don't rot after a reboot or reconnect.
-3. `scripts/verify-aec.sh` — plays a known tone and asserts the AEC source is
-   measurably quieter than the raw mic during playback; fails on the raw/unpatched
+3. `scripts/verify-aec.sh` — first checks that the mic, speaker, and AEC nodes exist and
+   that the module is actually wired to them (PipeWire silently falls back to a default
+   device otherwise), then plays a known tone and asserts the AEC source is measurably
+   quieter than the raw mic during playback. Fails on a raw/unpatched or missing-hardware
    setup, passes on the fixed one.
 
 ## Status
@@ -97,10 +103,25 @@ the full staged build history.
   state after a reload, or minor volume/acoustic differences between runs. All
   comfortably clear `verify-aec.sh`'s 10dB pass threshold, but don't treat any single
   number as precise; treat the script's pass/fail as the signal.
+- **Missing hardware fails silently at the PipeWire level.** If the USB mic is unplugged
+  or the speaker is off when the services start, PipeWire doesn't error — named targets
+  quietly resolve to some other default device. `verify-aec.sh` preflights for this and
+  fails loudly; nothing else in the setup will tell you. (An earlier version of the
+  script lacked these checks and passed at 46.1dB with the mic unplugged — found and
+  fixed during final review.)
+- **Tested only on one machine and one acoustic setup**: a USB condenser mic and a
+  Bluetooth speaker, measured with a synthetic 440Hz tone. It has not been tested with
+  music/speech through the speaker, other hardware, or a real OBS recording (that last
+  one is the intended human check).
 - **Apps must be manually pointed at the new devices.** This config creates
   `aec_sink`/`aec_source` alongside your existing devices — it doesn't retroactively
   reconfigure an app (OBS, Discord, etc.) that's already set to the raw mic or a
   specific output. You do that once, per app.
+
+## Development log
+
+Per-stage notes, newest first. These are the real debugging story, mistakes included —
+useful if something here doesn't behave the way the summary above says it should.
 
 ### S3 notes — a real regression found live, and S5 pulled forward because of it
 
@@ -166,9 +187,8 @@ temporarily revert to the wired headphones before being reset manually — a ful
 three-service restart didn't have this issue. Not investigated further since it
 doesn't affect the real reboot/login path this project targets.
 
-Still open: node names are still hardcoded to today's real hardware identifiers (S3
-not done), and OBS/any app must still explicitly select `aec_sink`/`aec_source` — this
-config doesn't retroactively fix an app already pointed at the raw devices.
+At the time, node names were still hardcoded to the raw hardware identifiers — that
+was fixed in S3 (above).
 
 ### S1 notes — two real bugs found and fixed along the way
 
@@ -196,6 +216,6 @@ Bluetooth sink. Re-measured with `scripts/verify-aec.sh`: **28.9dB reduction** (
 correctly **fails** (-1.0dB delta) when pointed at the raw mic on both sides — proof
 it discriminates rather than always passing.
 
-Lesson for S2/S3: never pass free-form quoted strings as `pactl load-module` argument
-values — use plain `key=value` args, and put anything needing quoting/nesting into the
-native `pipewire.conf.d` JSON form instead (S2), where it's parsed properly.
+Lesson: never pass free-form quoted strings as `pactl load-module` argument values —
+use plain `key=value` args. (S2 kept the pulse-compat module for exactly this reason:
+once the quoted properties were dropped, nothing needed the native JSON config form.)

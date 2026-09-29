@@ -1,5 +1,19 @@
 # PipeWire Acoustic Echo Cancellation (AEC) project
 
+> **As built vs. as planned** (the plan below is the original design, kept as written;
+> status lines at the bottom record what happened; README's Development log has detail):
+> - Persisted via `pipewire-pulse.conf.d` + `pulse.cmd` (pulse-compat module), not the
+>   native `pipewire.conf.d` form — kept the exact form S1 validated.
+> - S1's spike used `pactl load-module`, not `pw-cli` (`pw-cli load-module` loads into its
+>   own throwaway context, so nothing appears in the real graph).
+> - S4 (verify script) was built early; S5 (default source) was pulled into S3 because it
+>   was causing S3's Bluetooth A2DP→HSP regressions.
+> - `sox` isn't installed on the target machine; the script uses `ffmpeg -af astats`.
+> - Repo/dir is `quiet-mic` (was `pw-aec`), and node-name matching is on `node.name`
+>   regex, not `device.name`.
+> - Final review added preflight checks to `verify-aec.sh` after finding it could pass
+>   with the hardware absent.
+
 ## Context
 
 You wanted a project a senior engineer would respect — something that solves a real

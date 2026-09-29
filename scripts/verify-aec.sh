@@ -1,17 +1,37 @@
 #!/usr/bin/env bash
 # Plays a known tone through the desktop sink, records simultaneously from the
 # raw mic and the echo-cancelled source, and asserts the AEC path is at least
-# MIN_DB_DELTA quieter during playback. Exits non-zero if not — this is meant
+# MIN_DB_DELTA quieter during playback. Exits non-zero if not -- this is meant
 # to fail on a broken/unloaded AEC setup, not just print numbers.
+#
+# Preflight matters: pipewire-pulse silently falls back to a default device
+# when a named one doesn't exist, and echo-cancel's source_master does the same.
+# Without these checks the script can "pass" by comparing two unrelated devices.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-RAW_MIC="${RAW_MIC:-alsa_input.usb-DCMT_Technology_USB_Condenser_Microphone_214b206000000178-00.mono-fallback}"
+RAW_MIC="${RAW_MIC:-usb_condenser_mic}"
+SPEAKER="${SPEAKER:-bt_desktop_speaker}"
 AEC_SOURCE="${AEC_SOURCE:-aec_source}"
 PLAYBACK_SINK="${PLAYBACK_SINK:-aec_sink}"
 MIN_DB_DELTA="${MIN_DB_DELTA:-10}"
 TONE="evidence/tone.wav"
 DURATION=5
+
+die() { echo "FAIL: $*" >&2; exit 1; }
+
+sources=$(pactl list short sources | awk '{print $2}')
+sinks=$(pactl list short sinks | awk '{print $2}')
+grep -qx "$RAW_MIC" <<<"$sources" || die "raw mic '$RAW_MIC' not found (unplugged, or node rename rule not applied?)"
+grep -qx "$AEC_SOURCE" <<<"$sources" || die "AEC source '$AEC_SOURCE' not found (module not loaded?)"
+grep -qx "$PLAYBACK_SINK" <<<"$sinks" || die "AEC sink '$PLAYBACK_SINK' not found (module not loaded?)"
+grep -qx "$SPEAKER" <<<"$sinks" || die "speaker '$SPEAKER' not found (Bluetooth disconnected?)"
+
+links=$(pw-link -l)
+capture=$(grep -A1 '^echo-cancel-capture:input' <<<"$links" || true)
+playback=$(grep -A1 '^echo-cancel-playback:output' <<<"$links" || true)
+grep -q -- "<- ${RAW_MIC}:" <<<"$capture" || die "echo-cancel-capture is not fed by '$RAW_MIC' (module fell back to another mic?)"
+grep -q -- "-> ${SPEAKER}:" <<<"$playback" || die "echo-cancel-playback is not feeding '$SPEAKER'"
 
 if [[ ! -f "$TONE" ]]; then
     echo "generating $TONE"
@@ -52,6 +72,5 @@ if awk -v d="$DELTA" -v m="$MIN_DB_DELTA" 'BEGIN{exit !(d>=m)}'; then
     echo "PASS: AEC source is ${DELTA}dB quieter than raw mic during playback"
     exit 0
 else
-    echo "FAIL: AEC source only ${DELTA}dB quieter than raw mic (threshold ${MIN_DB_DELTA}dB)"
-    exit 1
+    die "AEC source only ${DELTA}dB quieter than raw mic (threshold ${MIN_DB_DELTA}dB)"
 fi
